@@ -1,0 +1,103 @@
+*{
+    margin: 0; /*this for removing dumb microsoft edge margin*/
+}
+body{
+    margin: 0px;
+    background-color: hsl(0, 0%, 5%);
+}
+header{
+    background-color: hsl(0, 0%, 10%);
+    color: hsl(0, 0%, 90%);
+    display: flex;
+    position: sticky;
+    width: 100%;
+    top: 0;
+}
+#headertitle{
+    display: flex;
+    width: 40%;
+    font-size: clamp(2em,3.5vw,4em);
+    justify-content: center;
+    align-items: center;
+    padding-top: 1vw;
+    padding-bottom: 1vw;
+}
+.options{
+    width: 20%;
+    border-left: solid 2px hsl(0, 0%, 15%);
+    text-align: center;
+    font-size: clamp(1.5em,2.5vw,3em);
+    place-content: center;
+    text-decoration: none;
+    color: white;
+}
+.options:hover{
+    background-color: rgb(40, 40, 40);
+}
+.options:active{
+    background-color: rgb(51, 51, 51);
+}
+
+#herosection{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#title{
+    color: hsl(0, 0%, 90%);
+    font-size: 7vw;
+    padding-top: 1em;
+    text-shadow: 3px 3px 5px hsl(0, 0%, 20%);
+}
+#desc{
+    color: hsl(0, 0%, 50%);
+    font-size: 2em;
+    padding-top: 1em;
+    padding-bottom: 1em;
+}
+#button{
+    text-decoration: none;
+    background-color: hsl(60, 2%, 11%);
+    color: hsl(137, 50%, 48%);
+    font-size: 2em;
+    border: solid 3px hsl(120, 37%, 35%);
+    border-radius: 0.6em;
+    font-style: bold;
+    padding: 0.3em;
+    box-shadow: 3px 3px 5px hsl(120, 37%, 15%);
+}
+#button:hover{
+    background-color: hsl(60, 2%, 15%);
+    box-shadow: 3px 3px 5px hsl(120, 37%, 20%);
+}
+
+#featurestab{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-around;
+}
+#featurestab1{
+    padding-top: 5em;
+    padding-bottom: 2.5em;
+    text-shadow: 3px 3px 5px hsl(0, 0%, 20%);
+    color: hsl(0, 0%, 90%);
+    font-size: 5vw;
+    flex-direction: top;
+    text-align: center;
+}
+#featurestab > div{
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    border: solid 3px white; 
+    padding-top: 2px;
+    border-radius: 0.2em; 
+    color: hsl(0, 0%, 90%);
+    font-size: 2em;
+}
+
+#featurestab img{
+    width: auto;
+    height: 200px;
+}
