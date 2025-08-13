@@ -1,0 +1,12 @@
+
+#container{
+    display: flex;
+    border: solid 5px black;
+    border-radius: 10px;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+#time{
+    font-size: 50px;
+}
