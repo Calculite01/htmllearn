@@ -26,7 +26,8 @@ def hello():
 
 @app.route("/home")
 def home():
-    return render_template('index.html')
+    expenses = Expense.query.all()
+    return render_template('index.html',expenses=expenses)
 
 @app.route("/expensecreate",methods=["GET","POST"])
 def expensecreate():
@@ -38,6 +39,26 @@ def expensecreate():
         return redirect(url_for('home'))
 
     return render_template('expensecreate.html',form=form)
+
+@app.route("/deleteexpense<int:id>",methods=["POST"])
+def deleteexpense(id):
+    expense = Expense.query.get(id)
+    db.session.delete(expense)
+    db.session.commit()
+    return redirect(url_for('home'))
+
+@app.route("/expenseupdate<int:id>",methods=["GET","POST"])
+def expenseupdate(id):
+    form = ExpenseForm()
+    if form.validate_on_submit():
+        expense = Expense.query.get(id)
+        expense.name = form.expensename.data
+        expense.category = form.category.data
+        expense.amount = form.amount.data
+        expense.date = form.date.data
+        db.session.commit()
+        return redirect(url_for('home'))
+    return render_template('expenseupdate.html',form=form)
 
 if __name__ == '__main__':
     app.run(debug=True)
