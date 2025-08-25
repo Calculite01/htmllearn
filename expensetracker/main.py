@@ -117,7 +117,8 @@ def register():
             account = Account(username=form.username.data,email=form.email.data,password=hashedpw)
             db.session.add(account)
             db.session.commit()
-            return redirect(url_for('login'))
+            login_user(account)
+            return redirect(url_for('home'))
     return render_template('register.html',form=form,message=message)
 
 @app.route("/logout")
