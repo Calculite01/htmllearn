@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block content %}
+<a href="{{ url_for('account')}}">Back</a>
+<form action="" method="POST">
+    <label id="email">Email</label>
+    <input type="text" for="email" name="email" required>
+    <input type="submit">
+</form>
+<div> {{ message }}</div>
+{% endblock content %}
