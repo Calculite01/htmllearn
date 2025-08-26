@@ -1,0 +1,15 @@
+#player{
+    visibility: hidden;
+}
+#computer{
+    visibility: hidden;
+}
+#result{
+    visibility: hidden;
+}
+#pscore{
+    padding-top: 10px;
+}
+#replay{
+    visibility: hidden;
+}

@@ -1,0 +1,12 @@
+#picture{
+    height: 300px;
+    width: 500px;
+}
+.appear{
+    transition: opacity 500ms ease-in;
+    opacity: 1;
+}
+.disappear{
+    transition: opacity 500ms ease-in;
+    opacity: 0;
+}
