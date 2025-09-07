@@ -1,10 +1,14 @@
-from flask import Flask,render_template,url_for,redirect,request
+from flask import Flask,render_template,url_for,redirect,request,session
+from itsdangerous import URLSafeTimedSerializer as Serializer
 from forms import ExpenseForm,LoginForm,RegistrationForm
 from flask_sqlalchemy import SQLAlchemy
 import bcrypt
 from flask_login import LoginManager,UserMixin,login_user,current_user,logout_user,login_required
 import validate_email
-
+import uuid
+from flask_mail import Message,Mail
+import os
+import random
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = 'fis'
@@ -12,9 +16,15 @@ app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///expenses.db'
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+app.config['MAIL_SERVER'] = 'smtp.googlemail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = "saadwajid401@gmail.com"
+app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASS')
+mail = Mail(app)
 
 class Expense(db.Model):
-    id = db.Column(db.Integer, primary_key = True)
+    id = db.Column(db.String(36), primary_key = True)
     name = db.Column(db.String(), nullable = False)
     category = db.Column(db.String(), nullable = False)
     amount = db.Column(db.Integer, nullable = False)
@@ -25,21 +35,36 @@ class Expense(db.Model):
         return f"Expense('{self.name}','{self.category}','{self.amount}','{self.date}',{self.accountid})"
 
 class Account(db.Model,UserMixin):
-    id = db.Column(db.Integer, primary_key = True)
+    id = db.Column(db.String(36), primary_key = True)
     username = db.Column(db.String(), nullable = False, unique = True)
     email = db.Column(db.String(), nullable = False)
     password = db.Column(db.String(), nullable = False)
     expenses = db.relationship('Expense',backref="author",lazy=True)
 
+    def get_reset_token(self,expires_sec=600):
+        s = Serializer(app.config["SECRET_KEY"])
+        return s.dumps({"user_id":self.id}).decode('utf-8')
+    
+    @staticmethod
+    def verify_reset_token(token):
+        s = Serializer(app.config["SECRET_KEY"])
+        try:
+            user_id = s.loads(token)["user_id"]
+        except:
+            user_id = None
+        return Account.query.get(user_id)
+    
     def __repr__(self):
         return f"Account('{self.username}','{self.email}')"
 
 @login_manager.user_loader
 def load_account(id):
-    return Account.query.get(int(id))
+    return Account.query.get(id)
 
 @app.route("/")
 def hello():
+    session["code"] = None
+    session["name"] = None
     if current_user.is_authenticated:
         return redirect(url_for('home'))
     return render_template("home.html")
@@ -57,7 +82,7 @@ def home():
 def expensecreate():
     form = ExpenseForm()
     if form.validate_on_submit():
-        expense = Expense(name=form.expensename.data, category=form.category.data, amount=form.amount.data, date=form.date.data, accountid = current_user.id)
+        expense = Expense(id=str(uuid.uuid4()),name=form.expensename.data, category=form.category.data, amount=form.amount.data, date=form.date.data, accountid = current_user.id)
         db.session.add(expense)
         db.session.commit()
         return redirect(url_for('home'))
@@ -65,7 +90,7 @@ def expensecreate():
     return render_template('expensecreate.html',form=form)
 
 
-@app.route("/deleteexpense<int:id>",methods=["POST"])
+@app.route("/deleteexpense<id>",methods=["POST"])
 @login_required
 def deleteexpense(id):
     expense = Expense.query.get(id)
@@ -74,7 +99,7 @@ def deleteexpense(id):
     return redirect(url_for('home'))
 
 
-@app.route("/expenseupdate<int:id>",methods=["GET","POST"])
+@app.route("/expenseupdate<id>",methods=["GET","POST"])
 @login_required
 def expenseupdate(id):
     form = ExpenseForm()
@@ -105,6 +130,13 @@ def login():
 
 @app.route("/register",methods=["GET","POST"])
 def register():
+    if session["code"] != None or session["name"] != None:
+        account = Account.query.filter_by(username=session["name"]).first()
+        db.session.delete(account)
+        db.session.commit()
+        session["code"] = None
+        session["name"] = None
+
     if current_user.is_authenticated:
         return redirect(url_for('home'))
     message = ""
@@ -113,13 +145,43 @@ def register():
         if Account.query.filter_by(username=form.username.data).first():
             message = "Username is already taken"
         else:
+            code = send_email(form.email.data)
             hashedpw = bcrypt.hashpw(form.password.data.encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
-            account = Account(username=form.username.data,email=form.email.data,password=hashedpw)
+            account = Account(id=str(uuid.uuid4()),username=form.username.data,email=form.email.data,password=hashedpw)
             db.session.add(account)
             db.session.commit()
+            session["code"] = code
+            session["name"] = account.username
+            return redirect(url_for('verifyemail'))
+    return render_template('register.html',form=form,message=message)
+
+@app.route("/verifyemail",methods=["GET","POST"])
+def verifyemail():
+    message = ""
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    name = session["name"]
+    code = session["code"]
+    if name == None or code == None:
+        return redirect(url_for('register'))
+    account = Account.query.filter_by(username=name).first()
+    if request.method == "POST":
+        codeEntered = request.form.get('code')
+        if codeEntered == code:
             login_user(account)
             return redirect(url_for('home'))
-    return render_template('register.html',form=form,message=message)
+        else:
+            message = "Incorrect code"
+    return render_template('verifyemail.html',message=message)
+    
+
+
+
+
+
+
+
+
 
 @app.route("/logout")
 @login_required
@@ -130,9 +192,11 @@ def logout():
 @app.route("/account")
 @login_required
 def account():
+    session["code"] = None
+    session["name"] = None
     return render_template("account.html")
 
-@app.route("/deleteaccount<int:id>")
+@app.route("/deleteaccount<id>")
 @login_required
 def deleteaccount(id):
     account = Account.query.get(id)
@@ -142,7 +206,7 @@ def deleteaccount(id):
     db.session.commit()
     return redirect(url_for('hello'))
 
-@app.route("/updateusername<int:id>",methods=["GET","POST"])
+@app.route("/updateusername<id>",methods=["GET","POST"])
 @login_required
 def updateaccount(id):
     message = ""
@@ -157,9 +221,11 @@ def updateaccount(id):
             return redirect(url_for('account'))
     return render_template("updateusername.html",message=message)
     
-@app.route("/updateemail<int:id>",methods=["GET","POST"])
+@app.route("/updateemail<id>",methods=["GET","POST"])
 @login_required
 def updateemail(id):
+    session["code"] = None
+    session["name"] = None
     message = ""
     account = Account.query.get(id)
     if request.method == "POST":
@@ -167,12 +233,37 @@ def updateemail(id):
         if not validate_email.validate_email(email):
             message = "Invalid email"
         else:
+            #account.email = email
+            #db.session.commit()
+            code = send_email(email)
+            session["code"] = code
+            session["name"] = email
+            return redirect(f"/verifyupdateemail{id}")
+    return render_template("updateemail.html",message=message)
+
+@app.route("/verifyupdateemail<id>",methods=["GET","POST"])
+@login_required
+def verifyupdateemail(id):
+    message = ""
+    code = session["code"]
+    email = session["name"]
+    if email == None or code == None:
+        return redirect(url_for(f'updateemail{id}'))
+    account = Account.query.get(id)
+    if request.method == "POST":
+        codeEntered = request.form.get('code')
+        if codeEntered == code:
             account.email = email
             db.session.commit()
             return redirect(url_for('account'))
-    return render_template("updateemail.html",message=message)
+        else:
+            message = "Incorrect code" + str(codeEntered) + str(code)
+    return render_template('verifyupdateemail.html',message=message)                           
 
-@app.route("/updatepassword<int:id>",methods=["GET","POST"])
+
+
+
+@app.route("/updatepassword<id>",methods=["GET","POST"])
 def updatepassword(id):
     message = ""
     account = Account.query.get(id)
@@ -192,6 +283,14 @@ def updatepassword(id):
 
     return render_template("updatepassword.html",message=message)
 
+def send_email(email):
+    msg = Message('Verify Email',
+                  sender='noreply@demo.com',
+                  recipients=[str(email)])
+    code = str(random.randint(0,9)) + str(random.randint(0,9)) + str(random.randint(0,9)) + str(random.randint(0,9))
+    msg.body = f"Your one time verification code is {code}"
+    mail.send(msg)
+    return code
 
 if __name__ == '__main__':
     app.run(debug=True)

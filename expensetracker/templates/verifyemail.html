@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block content %}
+<a href="{{ url_for('register') }}">Cancel</a>
+<form action="" method="POST">
+    <label id="code">Code</label>
+    <input type="number" for="code" name="code" required maxlength="4">
+    <button type="submit">Verify Email</button>
+</form>
+<div>{{ message }}</div>
+{% endblock content %}
