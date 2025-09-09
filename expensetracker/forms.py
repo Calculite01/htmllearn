@@ -11,6 +11,13 @@ class ExpenseForm(FlaskForm):
     date = DateField('Expense Date',validators=[DataRequired()])
     submit = SubmitField('Create')
 
+class ExpenseChangeForm(FlaskForm):
+    expensename = StringField('Expense Name',validators=[DataRequired()])
+    category = SelectField('Expense Category',choices=categories)
+    amount = IntegerField('Expense Amount',validators=[NumberRange(min=0),DataRequired()])
+    date = DateField('Expense Date',validators=[DataRequired()])
+    submit = SubmitField('Change')
+
 class RegistrationForm(FlaskForm):
     username = StringField('Username',validators=[DataRequired(),Length(min=3,max=20)])
     email = StringField('Email',validators=[DataRequired(),Email()])

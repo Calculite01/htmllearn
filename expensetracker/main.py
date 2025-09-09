@@ -1,6 +1,6 @@
 from flask import Flask,render_template,url_for,redirect,request,session
 from itsdangerous import URLSafeTimedSerializer as Serializer
-from forms import ExpenseForm,LoginForm,RegistrationForm
+from forms import ExpenseForm,LoginForm,RegistrationForm,ExpenseChangeForm
 from flask_sqlalchemy import SQLAlchemy
 import bcrypt
 from flask_login import LoginManager,UserMixin,login_user,current_user,logout_user,login_required
@@ -9,6 +9,7 @@ import uuid
 from flask_mail import Message,Mail
 import os
 import random
+import re
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = 'fis'
@@ -90,28 +91,30 @@ def expensecreate():
     return render_template('expensecreate.html',form=form)
 
 
-@app.route("/deleteexpense<id>",methods=["POST"])
+@app.route("/deleteexpense<id>",methods=["GET","POST"])
 @login_required
 def deleteexpense(id):
-    expense = Expense.query.get(id)
-    db.session.delete(expense)
-    db.session.commit()
-    return redirect(url_for('home'))
+    if request.method == "POST":
+        expense = Expense.query.get(id)
+        db.session.delete(expense)
+        db.session.commit()
+        return redirect(url_for('home'))
+    return render_template('deleteexpense.html')
 
 
 @app.route("/expenseupdate<id>",methods=["GET","POST"])
 @login_required
 def expenseupdate(id):
-    form = ExpenseForm()
+    form = ExpenseChangeForm()
+    expense = Expense.query.get(id)
     if form.validate_on_submit():
-        expense = Expense.query.get(id)
         expense.name = form.expensename.data
         expense.category = form.category.data
         expense.amount = form.amount.data
         expense.date = form.date.data
         db.session.commit()
         return redirect(url_for('home'))
-    return render_template('expenseupdate.html',form=form)
+    return render_template('expenseupdate.html',form=form,expense=expense)
 
 @app.route("/login",methods=["GET","POST"])
 def login():
@@ -142,8 +145,11 @@ def register():
     message = ""
     form = RegistrationForm()
     if form.validate_on_submit():
+        pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
         if Account.query.filter_by(username=form.username.data).first():
             message = "Username is already taken"
+        elif not bool(pattern.match(form.password.data)):
+            message = "Password must contain atleast 1 letter 1 number and one special character (@$!%*?&)"
         else:
             code = send_email(form.email.data)
             hashedpw = bcrypt.hashpw(form.password.data.encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
@@ -196,15 +202,17 @@ def account():
     session["name"] = None
     return render_template("account.html")
 
-@app.route("/deleteaccount<id>")
+@app.route("/deleteaccount<id>",methods=["GET","POST"])
 @login_required
 def deleteaccount(id):
-    account = Account.query.get(id)
-    Expense.query.filter_by(accountid=id).delete()
-    logout_user()
-    db.session.delete(account)
-    db.session.commit()
-    return redirect(url_for('hello'))
+    if request.method == "POST":
+        account = Account.query.get(id)
+        Expense.query.filter_by(accountid=id).delete()
+        logout_user()
+        db.session.delete(account)
+        db.session.commit()
+        return redirect(url_for('hello'))
+    return render_template('deleteaccount.html')
 
 @app.route("/updateusername<id>",methods=["GET","POST"])
 @login_required
@@ -271,11 +279,17 @@ def updatepassword(id):
         currentpw = request.form.get("old_password")
         newpw = request.form.get("new_password")
         confirmpw = request.form.get("confirm_password")
+        pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
         if bcrypt.checkpw(currentpw.encode('utf-8'),(account.password).encode('utf-8')):
-            if newpw == confirmpw:
-                account.password = bcrypt.hashpw(newpw.encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
-                db.session.commit()
-                return redirect(url_for('account'))
+            if not bool(pattern.match(newpw)):
+                message = "Password must contain atleast 1 letter 1 number and one special character (@$!%*?&)"
+            elif newpw == confirmpw:
+                if newpw == currentpw:
+                    message = "New password can't be same as old password"
+                else:
+                    account.password = bcrypt.hashpw(newpw.encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
+                    db.session.commit()
+                    return redirect(url_for('account'))
             else:
                 message = "Passwords should be equal"
         else:
@@ -291,6 +305,51 @@ def send_email(email):
     msg.body = f"Your one time verification code is {code}"
     mail.send(msg)
     return code
+
+def send_reset_email(email,id):
+    msg = Message('Reset Password',
+                  sender='noreply@demo.com',
+                  recipients=[str(email)])
+    msg.body = f"Click on link to reset password: http://127.0.0.1:5000/resetpassword{id}"
+    mail.send(msg)
+
+@app.route("/resetpassword",methods=["GET","POST"])
+def resetpassword():
+    session["reset"] = False
+    message = ""
+    if request.method == "POST":
+        email = request.form.get("email")
+        account = Account.query.filter_by(email=email).first()
+        if not validate_email.validate_email(email) or account == None:
+            message = "Invalid email"
+        else:
+            session["reset"] = True
+            send_reset_email(email,account.id)
+            message = "Reset password email sent"
+
+    return render_template('resetpassword.html',message=message)
+
+@app.route("/resetpassword<id>",methods=["GET","POST"])
+def resetpassword2(id):
+    message = ""
+    account = Account.query.get(id)
+    if not session["reset"]:
+        return redirect(url_for('hello'))
+    if request.method == "POST":
+        newpw = request.form.get("new_password")
+        confirmpw = request.form.get("confirm_password") 
+        pattern = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
+        if not bool(pattern.match(newpw)):
+            message = "Password must contain atleast 1 letter 1 number and one special character (@$!%*?&)"
+        elif newpw != confirmpw:
+            message = "Passwords dont match"
+        else:
+            hashedpw = bcrypt.hashpw(newpw.encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
+            account.password = hashedpw
+            db.session.commit()
+            return redirect(url_for('login'))
+
+    return render_template('resetpassword2.html',message=message)
 
 if __name__ == '__main__':
     app.run(debug=True)

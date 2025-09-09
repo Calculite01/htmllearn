@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+{% block content %}
+<h6>
+    Are you sure you want to delete account? This action cannot be undone
+</h6>
+<form action="" method="POST">
+    <button type="submit">Delete</button>
+</form>
+<a href="{{ url_for('account') }}">
+    <button type="button">Cancel</button>
+</a>
+{% endblock content %}

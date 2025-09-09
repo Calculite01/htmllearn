@@ -2,9 +2,7 @@
 {% block content %}
 <a href="{{ url_for('home') }}">Back</a>
 <div>{{ current_user.username }} - {{ current_user.email }}</div>
-<a href="updateusername{{ current_user.id }}">Change Username</a>
-<a href="updateemail{{ current_user.id }}">Change Email</a>
-<a href="updatepassword{{ current_user.id }}">Change Password</a>
+<a href="updatepassword{{ current_user.id }}">Change Password</a><br>
 <a href="{{ url_for('logout')}} ">Logout</a><br>
 <a href="/deleteaccount{{ current_user.id }}">Delete Account</a>
 {% endblock content %}

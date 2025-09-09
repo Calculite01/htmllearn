@@ -4,28 +4,32 @@
 <form method="POST" action="">
     {{ form.hidden_tag() }}
     <div>
-        {{form.expensename.label}}
+        {{form.expensename.label}}:
+        {{expense.name}}
         {{form.expensename}}
         {% for error in form.expensename.errors %}
             <h1>{{ error }}</h1>
         {% endfor %}
     </div>
     <div>
-        {{form.category.label}}
+        {{form.category.label}}:
+        {{expense.category}}
         {{form.category}}
         {% for error in form.category.errors %}
             <h1>{{ error }}</h1>
         {% endfor %}
     </div>
     <div>
-        {{form.amount.label}}
+        {{form.amount.label}}:
+        {{expense.amount}}
         {{form.amount}}
         {% for error in form.amount.errors %}
             <h1>{{ error }}</h1>
         {% endfor %}
     </div>
     <div>
-        {{form.date.label}}
+        {{form.date.label}}:
+        {{expense.date}}
         {{form.date}}
         {% for error in form.date.errors %}
             <h1>{{ error }}</h1>
