@@ -1,4 +1,4 @@
-from flask import Flask,render_template,url_for,redirect,request,session
+from flask import Flask,render_template,url_for,redirect,request,session,flash
 from itsdangerous import URLSafeTimedSerializer as Serializer
 from forms import ExpenseForm,LoginForm,RegistrationForm,ExpenseChangeForm
 from flask_sqlalchemy import SQLAlchemy
@@ -10,6 +10,7 @@ from flask_mail import Message,Mail
 import os
 import random
 import re
+from datetime import datetime,timedelta
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = 'fis'
@@ -40,21 +41,9 @@ class Account(db.Model,UserMixin):
     username = db.Column(db.String(), nullable = False, unique = True)
     email = db.Column(db.String(), nullable = False)
     password = db.Column(db.String(), nullable = False)
+    codeExpiry = db.Column(db.DateTime())
     expenses = db.relationship('Expense',backref="author",lazy=True)
-
-    def get_reset_token(self,expires_sec=600):
-        s = Serializer(app.config["SECRET_KEY"])
-        return s.dumps({"user_id":self.id}).decode('utf-8')
-    
-    @staticmethod
-    def verify_reset_token(token):
-        s = Serializer(app.config["SECRET_KEY"])
-        try:
-            user_id = s.loads(token)["user_id"]
-        except:
-            user_id = None
-        return Account.query.get(user_id)
-    
+  
     def __repr__(self):
         return f"Account('{self.username}','{self.email}')"
 
@@ -133,6 +122,8 @@ def login():
 
 @app.route("/register",methods=["GET","POST"])
 def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
     if session["code"] != None or session["name"] != None:
         account = Account.query.filter_by(username=session["name"]).first()
         db.session.delete(account)
@@ -140,8 +131,6 @@ def register():
         session["code"] = None
         session["name"] = None
 
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
     message = ""
     form = RegistrationForm()
     if form.validate_on_submit():
@@ -153,7 +142,7 @@ def register():
         else:
             code = send_email(form.email.data)
             hashedpw = bcrypt.hashpw(form.password.data.encode('utf-8'),bcrypt.gensalt()).decode('utf-8')
-            account = Account(id=str(uuid.uuid4()),username=form.username.data,email=form.email.data,password=hashedpw)
+            account = Account(id=str(uuid.uuid4()),username=form.username.data,email=form.email.data,password=hashedpw,codeExpiry=datetime.now()+timedelta(seconds=20))
             db.session.add(account)
             db.session.commit()
             session["code"] = code
@@ -174,8 +163,12 @@ def verifyemail():
     if request.method == "POST":
         codeEntered = request.form.get('code')
         if codeEntered == code:
-            login_user(account)
-            return redirect(url_for('home'))
+            if datetime.now() > account.codeExpiry:
+                flash("Code Expired")
+                return redirect(url_for('register'))
+            else:
+                login_user(account)
+                return redirect(url_for('home'))
         else:
             message = "Incorrect code"
     return render_template('verifyemail.html',message=message)
@@ -323,6 +316,8 @@ def resetpassword():
         if not validate_email.validate_email(email) or account == None:
             message = "Invalid email"
         else:
+            account.codeExpiry = datetime.now()+timedelta(seconds=20)
+            db.session.commit()
             session["reset"] = True
             send_reset_email(email,account.id)
             message = "Reset password email sent"
@@ -335,6 +330,9 @@ def resetpassword2(id):
     account = Account.query.get(id)
     if not session["reset"]:
         return redirect(url_for('hello'))
+    if request.method == "GET":
+        if datetime.now() > account.codeExpiry:
+            return "Link Expired"
     if request.method == "POST":
         newpw = request.form.get("new_password")
         confirmpw = request.form.get("confirm_password") 

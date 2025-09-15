@@ -23,6 +23,8 @@
             <div>{{ error }}</div>
         {% endfor %}
     </div>
+    <div id="feedback"></div>
+    <div id="extrafeedback"></div>
     <div>
         {{ form.confirm_password.label }}
         {{ form.confirm_password }}
@@ -36,4 +38,5 @@
 </form>
 <div> {{ message }}</div>
 <a href="{{ url_for('login')}}">Already have an account?</a>
+<script src="{{ url_for('static', filename='js/register.js') }}"></script>
 {% endblock content %}
