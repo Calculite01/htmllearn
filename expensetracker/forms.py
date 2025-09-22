@@ -1,4 +1,5 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField,FileAllowed
 from wtforms import StringField,SelectField,DateField,SubmitField,IntegerField,PasswordField
 from wtforms.validators import DataRequired,NumberRange,Length,EqualTo,Email,ValidationError
 
@@ -9,6 +10,7 @@ class ExpenseForm(FlaskForm):
     category = SelectField('Expense Category',choices=categories)
     amount = IntegerField('Expense Amount',validators=[NumberRange(min=0),DataRequired()])
     date = DateField('Expense Date',validators=[DataRequired()])
+    receipt = FileField("Optional Receipt",validators=[FileAllowed(['jpg','png'])])
     submit = SubmitField('Create')
 
 class ExpenseChangeForm(FlaskForm):
@@ -16,6 +18,7 @@ class ExpenseChangeForm(FlaskForm):
     category = SelectField('Expense Category',choices=categories)
     amount = IntegerField('Expense Amount',validators=[NumberRange(min=0),DataRequired()])
     date = DateField('Expense Date',validators=[DataRequired()])
+    receipt = FileField("Change Receipt",validators=[FileAllowed(['jpg','png'])])
     submit = SubmitField('Change')
 
 class RegistrationForm(FlaskForm):

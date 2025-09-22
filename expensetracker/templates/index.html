@@ -1,24 +1,37 @@
 {% extends "layout.html" %}
 {% block content %}
 <a href="{{ url_for('expensecreate') }}">Add Expense</a>
-<div>
-    Name, Category, Amount, Expenses
-</div>
-{% for expense in expenses %}
-<div>
-    {{ expense.name }}
-    {{ expense.category }}
-    {{ expense.amount }}
-    {{ expense.date }}
-    <div style="display: inline;">
-    <form action="/expenseupdate{{ expense.id }}" method="GET" style="display: inline;">
-        <button>Edit</button>
-    </form>
-    <form action="/deleteexpense{{ expense.id }}" method="GET" style="display: inline;">
-        <button>Delete</button>
-    </form>
-    </div>
-</div>
-{% endfor %}
+
+<table border="4">
+    <tr>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Amount</th>
+        <th>Date</th>
+    </tr>
+    {% for expense in expenses %}
+    <tr align="center">
+        <td>{{ expense.name }}</td>
+        <td>{{ expense.category }}</td>
+        <td>{{ expense.amount }}</td>
+        <td>{{ expense.date }}</td>
+        {% if expense.image_file %}
+            <td>
+                <a href="/showreceipt{{ expense.id }}"><button>Receipt</button></a>
+            </td>
+        {% endif %}
+        <td>
+            <div style="display: inline;">
+                <form action="/expenseupdate{{ expense.id }}" method="GET" style="display: inline;">
+                    <button>Edit</button>
+                </form>
+                <form action="/deleteexpense{{ expense.id }}" method="GET" style="display: inline;">
+                    <button>Delete</button>
+                </form>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
 <a href="{{ url_for('account')}}">Account</a>
 {% endblock content %}

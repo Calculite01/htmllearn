@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+{% block content %}
+<a href="{{ url_for('home') }}">Back</a>
+<br>
+<img src="{{ url_for('static', filename='profilepics/' + url) }}" width="100px">
+<form action="" method="POST">
+    <button type="submit">Remove Receipt</button>
+</form>
+{% endblock content %}

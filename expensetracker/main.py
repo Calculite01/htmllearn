@@ -11,6 +11,7 @@ import os
 import random
 import re
 from datetime import datetime,timedelta
+import secrets
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = 'fis'
@@ -31,6 +32,7 @@ class Expense(db.Model):
     category = db.Column(db.String(), nullable = False)
     amount = db.Column(db.Integer, nullable = False)
     date = db.Column(db.String(), nullable = False)
+    image_file = db.Column(db.String(20), nullable=True)
     accountid = db.Column(db.Integer,db.ForeignKey('account.id'),nullable = False)
 
     def __repr__(self):
@@ -66,18 +68,48 @@ def home():
     expenses = Expense.query.filter_by(accountid = current_user.id)
     return render_template('index.html',expenses=expenses)
 
+def save_picture(form_picture):
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_fn = random_hex + f_ext
+    picture_path = os.path.join(app.root_path, 'static/profilepics', picture_fn)
+    form_picture.save(picture_path)
+    return picture_fn
 
 @app.route("/expensecreate",methods=["GET","POST"])
 @login_required
 def expensecreate():
     form = ExpenseForm()
     if form.validate_on_submit():
-        expense = Expense(id=str(uuid.uuid4()),name=form.expensename.data, category=form.category.data, amount=form.amount.data, date=form.date.data, accountid = current_user.id)
+        if form.receipt.data:
+            form.receipt.data = save_picture(form.receipt.data)
+        else:
+            form.receipt.data = ""
+        expense = Expense(id=str(uuid.uuid4()),name=form.expensename.data, category=form.category.data, amount=form.amount.data, date=form.date.data, image_file=form.receipt.data, accountid = current_user.id)
         db.session.add(expense)
         db.session.commit()
         return redirect(url_for('home'))
 
     return render_template('expensecreate.html',form=form)
+
+@app.route("/showreceipt<id>",methods=["GET","POST"])
+@login_required
+def showreceipt(id):
+    expense = Expense.query.get(id)
+    url = expense.image_file
+    if request.method == "POST":
+        filename = expense.image_file
+        if filename != "":
+            uploadfolder = os.path.join(app.root_path,"static/profilepics")
+            filepath = os.path.join(uploadfolder,filename)
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            expense.image_file = ""
+            db.session.commit()
+        return redirect(url_for('home'))
+    return render_template("showreceipt.html",url=url)
+
+
 
 
 @app.route("/deleteexpense<id>",methods=["GET","POST"])
@@ -85,6 +117,12 @@ def expensecreate():
 def deleteexpense(id):
     if request.method == "POST":
         expense = Expense.query.get(id)
+        filename = expense.image_file
+        if filename != "":
+            uploadfolder = os.path.join(app.root_path,"static/profilepics")
+            filepath = os.path.join(uploadfolder,filename)
+            if os.path.exists(filepath):
+                os.remove(filepath)
         db.session.delete(expense)
         db.session.commit()
         return redirect(url_for('home'))
@@ -101,8 +139,20 @@ def expenseupdate(id):
         expense.category = form.category.data
         expense.amount = form.amount.data
         expense.date = form.date.data
+        if form.receipt.data:
+            filename = expense.image_file
+            if filename != "":
+                uploadfolder = os.path.join(app.root_path,"static/profilepics")
+                filepath = os.path.join(uploadfolder,filename)
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+            expense.image_file = save_picture(form.receipt.data)
         db.session.commit()
         return redirect(url_for('home'))
+    form.expensename.data = expense.name
+    form.category.data = expense.category
+    form.amount.data = expense.amount
+    form.date.data = datetime.strptime(expense.date,"%Y-%m-%d")
     return render_template('expenseupdate.html',form=form,expense=expense)
 
 @app.route("/login",methods=["GET","POST"])

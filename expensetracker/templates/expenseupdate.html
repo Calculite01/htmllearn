@@ -1,37 +1,40 @@
 {% extends "layout.html" %}
 {% block content %}
 <a href="{{ url_for('home') }}">Cancel</a>
-<form method="POST" action="">
+<form method="POST" action="" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
     <div>
-        {{form.expensename.label}}:
-        {{expense.name}}
+        {{form.expensename.label}}
         {{form.expensename}}
         {% for error in form.expensename.errors %}
             <h1>{{ error }}</h1>
         {% endfor %}
     </div>
     <div>
-        {{form.category.label}}:
-        {{expense.category}}
+        {{form.category.label}}
         {{form.category}}
         {% for error in form.category.errors %}
             <h1>{{ error }}</h1>
         {% endfor %}
     </div>
     <div>
-        {{form.amount.label}}:
-        {{expense.amount}}
+        {{form.amount.label}}
         {{form.amount}}
         {% for error in form.amount.errors %}
             <h1>{{ error }}</h1>
         {% endfor %}
     </div>
     <div>
-        {{form.date.label}}:
-        {{expense.date}}
+        {{form.date.label}}
         {{form.date}}
         {% for error in form.date.errors %}
+            <h1>{{ error }}</h1>
+        {% endfor %}
+    </div>
+    <div>
+        {{form.receipt.label}}
+        {{form.receipt}}
+        {% for error in form.receipt.errors %}
             <h1>{{ error }}</h1>
         {% endfor %}
     </div>
