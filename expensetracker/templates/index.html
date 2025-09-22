@@ -8,6 +8,8 @@
         <th>Category</th>
         <th>Amount</th>
         <th>Date</th>
+        <th>Receipt</th>
+        <th>Actions</th>
     </tr>
     {% for expense in expenses %}
     <tr align="center">
@@ -16,9 +18,9 @@
         <td>{{ expense.amount }}</td>
         <td>{{ expense.date }}</td>
         {% if expense.image_file %}
-            <td>
-                <a href="/showreceipt{{ expense.id }}"><button>Receipt</button></a>
-            </td>
+            <td><a href="/showreceipt{{ expense.id }}"><button><img src="{{ url_for('static', filename='profilepics/' + expense.image_file) }}" width="40px" height="40px"></a></td>
+        {% else %}
+            <td>None</td>
         {% endif %}
         <td>
             <div style="display: inline;">

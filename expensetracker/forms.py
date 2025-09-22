@@ -10,7 +10,7 @@ class ExpenseForm(FlaskForm):
     category = SelectField('Expense Category',choices=categories)
     amount = IntegerField('Expense Amount',validators=[NumberRange(min=0),DataRequired()])
     date = DateField('Expense Date',validators=[DataRequired()])
-    receipt = FileField("Optional Receipt",validators=[FileAllowed(['jpg','png'])])
+    receipt = FileField("Optional Receipt",validators=[FileAllowed(['jpg','png'])],id="filefield")
     submit = SubmitField('Create')
 
 class ExpenseChangeForm(FlaskForm):
@@ -18,7 +18,7 @@ class ExpenseChangeForm(FlaskForm):
     category = SelectField('Expense Category',choices=categories)
     amount = IntegerField('Expense Amount',validators=[NumberRange(min=0),DataRequired()])
     date = DateField('Expense Date',validators=[DataRequired()])
-    receipt = FileField("Change Receipt",validators=[FileAllowed(['jpg','png'])])
+    receipt = FileField("Change Receipt",validators=[FileAllowed(['jpg','png'])],id="filefield")
     submit = SubmitField('Change')
 
 class RegistrationForm(FlaskForm):

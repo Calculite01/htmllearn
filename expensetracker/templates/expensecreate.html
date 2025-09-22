@@ -38,8 +38,10 @@
             <h1>{{ error }}</h1>
         {% endfor %}
     </div>
+    <img id="preview" src="" style="display: none;" width="40px" height="40px">
     <div>
         {{form.submit}}
     </div>
 </form>
+<script src="{{ url_for('static',filename='js/expensecreate.js') }}"></script>
 {% endblock content %}

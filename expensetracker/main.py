@@ -89,7 +89,6 @@ def expensecreate():
         db.session.add(expense)
         db.session.commit()
         return redirect(url_for('home'))
-
     return render_template('expensecreate.html',form=form)
 
 @app.route("/showreceipt<id>",methods=["GET","POST"])
